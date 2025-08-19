@@ -7,7 +7,7 @@ import keyboard
 import datetime
 
 
-
+N = 1
 # Change the working directory to the folder this script is in.
 # Doing this because I'll be putting the files from each video in their own folder on GitHub
 # os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -39,6 +39,11 @@ will_you_switch_im = imread(path_game, 'will_you_switch.jpg')
 pokemon_info_im = imread(path_game, 'pokemon_info.jpg')
 fainted_im = imread(path_game, 'fainted.jpg')
 evolved_im = imread(path_game, 'evolved.jpg')
+rare_candy_im = imread(path_game, 'rare_candy.jpg')
+voucher_im = imread(path_game, 'voucher.jpg')
+voucher_plus_im = imread(path_game, 'voucher_plus.jpg')
+voucher_premium_im = imread(path_game, 'voucher_premium.jpg')
+
 
 
 # new_game_im = cv.imread(path_pre_game + 'new_game.jpg', cv.IMREAD_GRAYSCALE)
@@ -82,10 +87,35 @@ def get_yes_no_mask(im):
     yy = slice(y // 7 * 3, y // 7 * 6)
     return yy, xx
 
+def get_item_1_mask(im):
+    x = im.shape[1]
+    y = im.shape[0]
+    xx = slice(x //20 *5, x // 20 *9)
+    yy = slice(y // 20 *7, y // 20 *11)
+    return yy, xx
+
+def get_item_2_mask(im):
+    x = im.shape[1]
+    y = im.shape[0]
+    xx = slice(x //20 *8, x // 20 *12)
+    yy = slice(y // 20 *7, y // 20 *11)
+    return yy, xx
+
+def get_item_3_mask(im):
+    x = im.shape[1]
+    y = im.shape[0]
+    xx = slice(x //20 *11, x // 20 *15)
+    yy = slice(y // 20 *7, y // 20 *11)
+    return yy, xx
+
 
 low_mask = get_low_mask(screenshot_im)
 high_mask = get_high_mask(screenshot_im)
 # yes_no_mask = get_yes_no_mask(screenshot_im)
+item_1_mask = get_item_1_mask(screenshot_im)
+item_2_mask = get_item_2_mask(screenshot_im)
+item_3_mask = get_item_3_mask(screenshot_im)
+
 
 def match_and_locate_template(screenshot, image, mask=None):
     if mask is None:
@@ -96,8 +126,64 @@ def match_and_locate_template(screenshot, image, mask=None):
         _, result_confidence, _, _ = cv.minMaxLoc(match_result)
     return result_confidence
 
+def search_and_process_item(item_im, confidence_threshold):
+    confidence_1 = match_and_locate_template(screenshot_im, item_im, item_1_mask)
+    confidence_2 = match_and_locate_template(screenshot_im, item_im, item_2_mask)
+    confidence_3 = match_and_locate_template(screenshot_im, item_im, item_3_mask)
+    if confidence_1 > confidence_threshold:
+        pass
+    elif confidence_2 > confidence_threshold:
+        keyboard.press_and_release('right')
+        time.sleep(0.5)
+    elif confidence_3 > confidence_threshold:
+        keyboard.press_and_release('right')
+        time.sleep(0.5)
+        keyboard.press_and_release('right')
+        time.sleep(0.5)
+    keyboard.press_and_release('z')
+    time.sleep(0.5)
+    keyboard.press_and_release('z')
+    time.sleep(1)
+
+def reroll_special_function(confidence_threshold):
+    confidence_rare_candy = match_and_locate_template(screenshot_im, rare_candy_im)
+    confidence_voucher = match_and_locate_template(screenshot_im, voucher_im)
+    confidence_voucher_plus = match_and_locate_template(screenshot_im, voucher_plus_im)
+    confidence_voucher_premium = match_and_locate_template(screenshot_im, voucher_premium_im)
+
+    if confidence_voucher_premium > confidence_threshold:
+        search_and_process_item(voucher_premium_im, confidence_threshold)
+        return True
+
+    if confidence_voucher_plus > confidence_threshold:
+        search_and_process_item(voucher_plus_im, confidence_threshold)
+        return True
+    
+    if confidence_voucher > confidence_threshold:
+        search_and_process_item(voucher_im, confidence_threshold)
+        return True
+    
+    if confidence_rare_candy > confidence_threshold:
+        search_and_process_item(rare_candy_im, confidence_threshold)
+        return True
+    
+    return False
+
+
+
 def main():
     CONFIDENCE_THRESHOLD = 0.7
+
+    confidence_reroll = match_and_locate_template(voucher_premium_im, reroll_im)
+    if (confidence_reroll >= CONFIDENCE_THRESHOLD):
+        return
+    confidence_reroll = match_and_locate_template(voucher_plus_im, reroll_im)
+    if (confidence_reroll >= CONFIDENCE_THRESHOLD):
+        return
+    confidence_reroll = match_and_locate_template(voucher_im, reroll_im)
+    if (confidence_reroll >= CONFIDENCE_THRESHOLD):
+        return
+
     # if new_game_result_confidence >= CONFIDENCE_THRESHOLD:
     #         keyboard.press_and_release('z')
     #         time.sleep(1)
@@ -112,15 +198,26 @@ def main():
     #         keyboard.press_and_release('z')
     #         time.sleep(1)
 
+
     confidence_reroll = match_and_locate_template(screenshot_im, reroll_im)
-    confidence_evolved = match_and_locate_template(screenshot_im, evolved_im, low_mask)
-    if (confidence_reroll >= CONFIDENCE_THRESHOLD) or (confidence_evolved >= CONFIDENCE_THRESHOLD):
+    if (confidence_reroll >= CONFIDENCE_THRESHOLD):
             print(f"reroll: {confidence_reroll}")
+            if reroll_special_function(CONFIDENCE_THRESHOLD):
+                 return
+            
+            keyboard.press_and_release('x')
+            time.sleep(1)
+            keyboard.press_and_release('z')
+            time.sleep(1+N)
+            return
+
+    confidence_evolved = match_and_locate_template(screenshot_im, evolved_im, low_mask)
+    if (confidence_evolved >= CONFIDENCE_THRESHOLD):
             print(f"evolved: {confidence_evolved}")
             keyboard.press_and_release('x')
             time.sleep(1)
             keyboard.press_and_release('z')
-            time.sleep(2)
+            time.sleep(1+N)
             return
 
     confidence = match_and_locate_template(screenshot_im, wants_to_learn_im, low_mask)
@@ -146,7 +243,7 @@ def main():
             keyboard.press_and_release('x')
             time.sleep(1)
             keyboard.press_and_release('right')
-            time.sleep(2)
+            time.sleep(1+N)
             return
     
 
@@ -156,7 +253,7 @@ def main():
         keyboard.press_and_release('x')
         time.sleep(1)
         keyboard.press_and_release('x')
-        time.sleep(2)
+        time.sleep(1+N)
         return
 
 
@@ -168,7 +265,7 @@ def main():
         keyboard.press_and_release('right')
         time.sleep(1)
         keyboard.press_and_release('x')
-        time.sleep(2)
+        time.sleep(1+N)
         return
 
     confidence = match_and_locate_template(screenshot_im, add_to_party_im)
@@ -192,7 +289,8 @@ def main():
         time.sleep(0.5)
         keyboard.press_and_release('x')
         time.sleep(0.5)
-        keyboard.press_and_release('down')
+        
+        keyboard.press_and_release('down') ##down
         time.sleep(0.5)
         keyboard.press_and_release('z')
         time.sleep(0.5)
@@ -201,6 +299,13 @@ def main():
         keyboard.press_and_release('enter')
         time.sleep(0.5)
         keyboard.press_and_release('z')
+        time.sleep(0.5)
+
+        time.sleep(2)
+
+        keyboard.press_and_release('up')
+        time.sleep(1)
+        keyboard.press_and_release('up')
         time.sleep(0.5)
         return
 
@@ -214,13 +319,7 @@ def main():
         time.sleep(1)
         return
 
-    confidence_black = match_and_locate_template(screenshot_im, blank_black_im)
-    confidence_green = match_and_locate_template(screenshot_im, blank_green_im)
-    if (confidence_black >= CONFIDENCE_THRESHOLD) or (confidence_green >= CONFIDENCE_THRESHOLD):
-        print(f"black: {confidence_black}")
-        print(f"green: {confidence_green}")
-        time.sleep(2)
-        return
+
     
     confidence = match_and_locate_template(screenshot_im, continue_im)
     if confidence >= CONFIDENCE_THRESHOLD:
@@ -231,8 +330,16 @@ def main():
         time.sleep(0.5)
         return
     
+    confidence_black = match_and_locate_template(screenshot_im, blank_black_im)
+    confidence_green = match_and_locate_template(screenshot_im, blank_green_im)
+    if (confidence_black >= CONFIDENCE_THRESHOLD) or (confidence_green >= CONFIDENCE_THRESHOLD):
+        print(f"black: {confidence_black}")
+        print(f"green: {confidence_green}")
+        time.sleep(1+N)
+        return
+    
     keyboard.press_and_release('z')
-    time.sleep(1.5)
+    time.sleep(1+N/2)
     return
 
 
