@@ -149,6 +149,7 @@ def main():
     MIN_DELAY = 0.2
     SPEND_VOUCHER = True    
     SHINY_GATCH = False
+    VOUCHER_TYPE = "premium" # plus or premium
 
     def go_to_load_game_menu():
         keyboard.press_and_release('down')
@@ -287,9 +288,9 @@ def main():
             time.sleep(0.5)
             counter += 1
         
-
-        keyboard.press_and_release('down') # extra down for premium voucher
-        time.sleep(MIN_DELAY)
+        if VOUCHER_TYPE == "premium":
+            keyboard.press_and_release('down') # extra down for premium voucher
+            time.sleep(MIN_DELAY)
         keyboard.press_and_release('down')
         time.sleep(MIN_DELAY)
         keyboard.press_and_release('down')
@@ -359,8 +360,17 @@ def main():
         keyboard.press_and_release('z')
         time.sleep(MIN_DELAY)
 
-    # load_penultimate_game()
-    load_second_game()
+    def load_third_game():
+        keyboard.press_and_release('down')
+        time.sleep(MIN_DELAY)
+        keyboard.press_and_release('down')
+        time.sleep(MIN_DELAY)
+        keyboard.press_and_release('z')
+        time.sleep(MIN_DELAY)
+
+    load_penultimate_game()
+    # load_second_game()
+    # load_third_game()
 
     # ss = get_screenshot()
     # while match_and_locate_template(ss, will_you_switch_im, low_mask) < CONFIDENCE_THRESHOLD:
@@ -446,8 +456,8 @@ def main():
     def select_reward_voucher_plus():
         keyboard.press_and_release('x')
         time.sleep(MIN_DELAY)
-        keyboard.press_and_release('left')
-        time.sleep(MIN_DELAY)
+        # keyboard.press_and_release('left')
+        # time.sleep(MIN_DELAY)
         keyboard.press_and_release('z')
         time.sleep(MIN_DELAY)
 
@@ -459,11 +469,25 @@ def main():
         keyboard.press_and_release('right')
         time.sleep(MIN_DELAY)
         keyboard.press_and_release('z')
+        time.sleep(MIN_DELAY)
+
+    def select_second_reward():
+        keyboard.press_and_release('x')
+        time.sleep(MIN_DELAY)
+        keyboard.press_and_release('right')
+        time.sleep(MIN_DELAY)
+        keyboard.press_and_release('z')
         time.sleep(MIN_DELAY)   
 
-    # select_reward_voucher_plus()
-    select_reward_voucher_premium()
 
+    def select_reward():
+        if VOUCHER_TYPE == "plus":
+            select_reward_voucher_plus()
+        elif VOUCHER_TYPE == "premium":
+            # select_reward_voucher_premium()
+            select_second_reward()
+
+    select_reward()
 
     # keyboard.press_and_release('down')
     # time.sleep(MIN_DELAY)
@@ -495,8 +519,7 @@ def main():
         if counter >= 100:
             return
         if counter >= 20 and match_and_locate_template(ss, skip_an_item_im, low_mask) >= CONFIDENCE_THRESHOLD:
-                # select_reward_voucher_plus()
-                select_reward_voucher_premium()
+            select_reward()
         time.sleep(MIN_DELAY)
         keyboard.press_and_release('x')
         time.sleep(0.5)
